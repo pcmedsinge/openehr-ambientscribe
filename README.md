@@ -1,5 +1,7 @@
 # AmbientScribe
 
+![Status](https://img.shields.io/badge/status-in%20progress-yellow) ![Phase](https://img.shields.io/badge/phase-3%20of%204-blue) ![Stack](https://img.shields.io/badge/stack-React%20%7C%20EHRbase%20%7C%20GPT--4o-informational)
+
 > Paste a free-text clinical note → AI extracts structured data → openEHR form auto-populates → practitioner confirms and submits.
 
 AmbientScribe is a clinical documentation tool that bridges unstructured dictation and structured openEHR records. A practitioner pastes or types a free-text note; GPT-4o extracts the clinical fields; the encounter form pre-fills for review; the practitioner confirms and the encounter is stored as a versioned openEHR composition in EHRbase.
