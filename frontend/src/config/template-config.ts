@@ -96,6 +96,22 @@ export const AQL = {
   synopsis:     'eval_cs/data[at0001]/items[at0002]/value/value',
 } as const
 
+// ── FLAT READ paths ──────────────────────────────────────────────────────────
+// EHRbase strips |value on DV_TEXT when returning FLAT GET responses.
+// DV_TEXT with 0..* occurrences uses :0 index instead of |value.
+// DV_CODED_TEXT keeps |value, |code, |terminology.
+// Use these keys when reading a composition back from EHRbase.
+export const FLAT_READ = {
+  startTime:    'outpatient_encounter/context/start_time',
+  composer:     'outpatient_encounter/composer|name',
+  presenting:   'outpatient_encounter/reason_for_encounter:0/presenting_problem',
+  story:        'outpatient_encounter/story_history:0/any_event:0/story:0',
+  exam:         'outpatient_encounter/physical_examination_findings:0/any_event:0/description',
+  diagName:     'outpatient_encounter/problem_diagnosis:0/problem_diagnosis_name|value',
+  diagCode:     'outpatient_encounter/problem_diagnosis:0/problem_diagnosis_name|code',
+  synopsis:     'outpatient_encounter/clinical_synopsis:0/synopsis',
+} as const
+
 // ── Mandatory FLAT fields added to every composition POST ────────────────────
 // These never change — same for every encounter in this app.
 export const FLAT_DEFAULTS: Record<string, string> = {

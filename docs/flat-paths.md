@@ -374,3 +374,13 @@ Returns all FLAT key-value pairs. The app reads each field using the known FLAT 
 3. **language and encoding are mandatory per ENTRY.** Every EVALUATION and OBSERVATION needs `language|code`, `language|terminology`, `encoding|code`, `encoding|terminology` or EHRbase throws a validation error.
 
 4. **EhrScape endpoint for FLAT POST.** Use `/ecis/v1/composition` not `/openehr/v1/ehr/{id}/composition` — EHRbase 0.30 has a name-resolution bug on the openEHR v1 FLAT endpoint.
+
+5. **FLAT read paths ≠ FLAT write paths.** When you POST a composition, EHRbase accepts `field|value` for DV_TEXT. But when you GET it back, EHRbase strips `|value` for plain DV_TEXT fields and uses `:0` for list items. DV_CODED_TEXT keeps `|value`. You need separate path constants for read vs write:
+
+| Field type | Write path (POST) | Read path (GET) |
+|-----------|-------------------|-----------------|
+| DV_TEXT (single) | `presenting_problem\|value` | `presenting_problem` |
+| DV_TEXT (list) | `story\|value` | `story:0` |
+| DV_CODED_TEXT | `problem_diagnosis_name\|value` | `problem_diagnosis_name\|value` ✓ same |
+
+In code: use `FLAT` constants for POST, `FLAT_READ` constants for GET (both defined in `template-config.ts`).

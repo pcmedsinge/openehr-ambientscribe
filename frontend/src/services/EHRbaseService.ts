@@ -1,4 +1,4 @@
-import { TEMPLATE_ID, PATIENT_NAMESPACE, AQL, FLAT, FLAT_DEFAULTS } from '../config/template-config'
+import { TEMPLATE_ID, PATIENT_NAMESPACE, AQL, FLAT, FLAT_READ, FLAT_DEFAULTS } from '../config/template-config'
 
 const OPENEHR = '/ehrbase/rest/openehr/v1'
 const ECIS    = '/ehrbase/rest/ecis/v1'
@@ -145,18 +145,18 @@ export const EHRbaseService = {
       return null
     }
 
-    const data = await res.json() as { composition: Record<string, string> }
-    const flat = data.composition ?? data
+    const data = await res.json() as { composition?: Record<string, string> }
+    const flat = data.composition ?? (data as unknown as Record<string, string>)
 
     return {
       compositionId,
-      visitDate:        flat[FLAT.startTime]  ?? '',
-      presentingProblem:flat[FLAT.presenting] ?? '',
-      history:          flat[FLAT.story]      ?? '',
-      examFindings:     flat[FLAT.exam]       ?? '',
-      diagnosisName:    flat[FLAT.diagName]   ?? '',
-      diagnosisCode:    flat[FLAT.diagCode]   ?? '',
-      managementPlan:   flat[FLAT.synopsis]   ?? '',
+      visitDate:         flat[FLAT_READ.startTime]   ?? '',
+      presentingProblem: flat[FLAT_READ.presenting]  ?? '',
+      history:           flat[FLAT_READ.story]       ?? '',
+      examFindings:      flat[FLAT_READ.exam]        ?? '',
+      diagnosisName:     flat[FLAT_READ.diagName]    ?? '',
+      diagnosisCode:     flat[FLAT_READ.diagCode]    ?? '',
+      managementPlan:    flat[FLAT_READ.synopsis]    ?? '',
     }
   },
 
