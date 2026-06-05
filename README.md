@@ -1,0 +1,105 @@
+# AmbientScribe
+
+> Paste a free-text clinical note → AI extracts structured data → openEHR form auto-populates → practitioner confirms and submits.
+
+AmbientScribe is a clinical documentation tool that bridges unstructured dictation and structured openEHR records. A practitioner pastes or types a free-text note; GPT-4o extracts the clinical fields; the encounter form pre-fills for review; the practitioner confirms and the encounter is stored as a versioned openEHR composition in EHRbase.
+
+---
+
+## What it does
+
+1. **Patient Worklist** — active patient list with overdue follow-up flags (>12 weeks since last visit)
+2. **Patient Detail** — demographics and full encounter history
+3. **New Encounter Wizard** — 4-step form covering Reason for Visit / Clinical History / Examination / Diagnosis + Management Plan
+4. **AI Extraction** — paste a clinical note, GPT-4o pre-fills all wizard fields; every field stays editable
+5. **View & Amend** — read-only encounter view with full versioned amendment (ETag-based, history preserved)
+
+---
+
+## Tech Stack
+
+| Layer | Choice |
+|-------|--------|
+| Frontend | React 18 + Vite + TypeScript + Tailwind CSS |
+| AI | OpenAI GPT-4o (`json_object` mode, single-call, no streaming) |
+| Clinical data store | EHRbase (openEHR CDR) |
+| Database | PostgreSQL |
+| Service layer | Custom `EHRbaseService.ts` typed class |
+
+---
+
+## openEHR Template
+
+**Template ID:** `outpatient_encounter`
+
+| Archetype | Purpose |
+|-----------|---------|
+| `openEHR-EHR-COMPOSITION.encounter.v1` | Outer composition shell |
+| `openEHR-EHR-EVALUATION.reason_for_encounter.v1` | Presenting condition |
+| `openEHR-EHR-OBSERVATION.story.v1` | Clinical history |
+| `openEHR-EHR-OBSERVATION.exam.v1` | Examination findings |
+| `openEHR-EHR-EVALUATION.problem_diagnosis.v1` | Diagnosis + ICD-11 code |
+| `openEHR-EHR-EVALUATION.clinical_synopsis.v1` | Management plan |
+
+---
+
+## Infrastructure
+
+| Service | Port |
+|---------|------|
+| EHRbase | 8086 |
+| PostgreSQL | 5436 |
+| Frontend (dev) | 5173 |
+
+---
+
+## Build Phases
+
+| Phase | Goal | Status |
+|-------|------|--------|
+| 1 — Infrastructure & Data | EHRbase + template + 20-patient seed | Not started |
+| 2 — Core UI Shell | Patient worklist + detail screens (read-only) | Not started |
+| 3 — Encounter Authoring | 4-step wizard, manual FLAT submit | Not started |
+| 4 — AI + Versioning | GPT-4o extraction + ETag-based amend | Not started |
+
+Each phase ends with a verification checkpoint. No phase starts until the previous checkpoint passes.
+
+---
+
+## Quick Start
+
+> Prerequisites: Docker Desktop, Node.js 20+, an OpenAI API key.
+
+```bash
+# 1. Start EHRbase + PostgreSQL
+docker compose up -d
+
+# 2. Install frontend dependencies (after Phase 2 scaffold)
+cd frontend && npm install
+
+# 3. Copy and fill in environment variables
+cp .env.example .env
+
+# 4. Run the seed script (after Phase 1 template upload)
+npx ts-node scripts/seed.ts
+
+# 5. Start the dev server
+npm run dev
+```
+
+---
+
+## Key Concepts
+
+- openEHR FLAT API — composition POST and PUT
+- AQL — patient worklist queries and encounter bind-back
+- Composition versioning — ETag + `If-Match` header for safe amendments
+- AI-assisted data entry — structured field extraction from free-text notes
+- Typed service layer over a live REST CDR
+
+---
+
+## Documents
+
+- [`CONCEPT.md`](./CONCEPT.md) — design rationale, architecture, and openEHR patterns
+- [`PLAN.md`](./PLAN.md) — phased task list, checkpoints, and risk register
