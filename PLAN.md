@@ -39,19 +39,19 @@ AMB-003 last encounter date is > 12 weeks before today
 **Goal:** Patient worklist and detail screens show real data from EHRbase. No AI, no form submission — a working read-only app.
 
 ### Tasks
-- [ ] 2.1 Scaffold Vite + React + TypeScript + Tailwind project
-- [ ] 2.2 Write `src/services/EHRbaseService.ts` — typed class with methods:
+- [x] 2.1 Scaffold Vite + React + TypeScript + Tailwind project
+- [x] 2.2 Write `src/services/EHRbaseService.ts` — typed class with methods:
   - `getPatients()` — AQL worklist query
   - `getPatientDetail(ehrId)` — AQL detail query
   - `getEncounters(ehrId)` — AQL encounter list
-- [ ] 2.3 Patient Worklist screen
+- [x] 2.3 Patient Worklist screen
   - Table: Patient ID, Name, DOB, last visit date, overdue flag (>12 weeks)
   - AQL must use proven patterns — no multi-archetype joins, no DISTINCT+alias
-- [ ] 2.4 Patient Detail screen
+- [x] 2.4 Patient Detail screen
   - Header: demographics
   - Encounter history list with date + presenting complaint
   - Click row → View Encounter (read-only display of all archetype fields)
-- [ ] 2.5 Routing: `/` → Worklist, `/patient/:ehrId` → Detail, `/encounter/:compositionId` → View
+- [x] 2.5 Routing: `/` → Worklist, `/patient/:ehrId` → Detail, `/encounter/:compositionId` → View
 
 ### Checkpoint 2
 ```
@@ -146,6 +146,6 @@ _Add notes here as work progresses — decisions made, paths confirmed, failures
 
 - Phase started: 2026-06-05
 - Phase 1 done: 2026-06-05
-- Phase 2 done: —
+- Phase 2 done: 2026-06-05
 - Phase 3 done: —
 - Phase 4 done: —

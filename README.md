@@ -57,10 +57,10 @@ AmbientScribe is a clinical documentation tool that bridges unstructured dictati
 
 | Phase | Goal | Status |
 |-------|------|--------|
-| 1 — Infrastructure & Data | EHRbase + template + 20-patient seed | Not started |
-| 2 — Core UI Shell | Patient worklist + detail screens (read-only) | Not started |
-| 3 — Encounter Authoring | 4-step wizard, manual FLAT submit | Not started |
-| 4 — AI + Versioning | GPT-4o extraction + ETag-based amend | Not started |
+| 1 — Infrastructure & Data | EHRbase + template + 20-patient seed | ✅ Complete |
+| 2 — Core UI Shell | Patient worklist + detail screens (read-only) | ✅ Complete |
+| 3 — Encounter Authoring | 4-step wizard, manual FLAT submit | 🔲 Not started |
+| 4 — AI + Versioning | GPT-4o extraction + ETag-based amend | 🔲 Not started |
 
 Each phase ends with a verification checkpoint. No phase starts until the previous checkpoint passes.
 
