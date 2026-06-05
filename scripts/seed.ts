@@ -11,26 +11,61 @@
  */
 import { EHRBASE_URL, TEMPLATE_ID, PATIENT_NAMESPACE, jsonHeaders } from './config.ts'
 
+// EhrScape FLAT API — bypasses the openEHR v1 endpoint name-validation issue in EHRbase 0.30
+const ECIS_URL = EHRBASE_URL.replace('/openehr/v1', '/ecis/v1')
+
 // ─────────────────────────────────────────────────────────────────────────────
-// FLAT PATHS — verify with: npm run discover-paths
-// Update any path that differs from what discover-paths prints.
+// FLAT PATHS — confirmed via web template introspect
+// GET /ehrbase/rest/ecis/v1/template/outpatient_encounter
 // ─────────────────────────────────────────────────────────────────────────────
 const P = {
-  startTime:        'outpatient_encounter/context/start_time',
-  facility:         'outpatient_encounter/context/_health_care_facility|name',
-  composer:         'outpatient_encounter/composer|name',
-  // reason_for_encounter archetype
-  presentingProblem:'outpatient_encounter/reason_for_encounter/presenting_problem:0|value',
-  // story archetype
-  clinicalHistory:  'outpatient_encounter/story/story:0|value',
-  // exam archetype
-  examFindings:     'outpatient_encounter/exam/description:0|value',
-  // problem_diagnosis archetype
-  diagnosisName:    'outpatient_encounter/problem_diagnosis/problem_diagnosis_name:0|value',
-  diagnosisCode:    'outpatient_encounter/problem_diagnosis/problem_diagnosis_name:0|code',
-  diagnosisTerm:    'outpatient_encounter/problem_diagnosis/problem_diagnosis_name:0|terminology',
-  // clinical_synopsis archetype
-  synopsis:         'outpatient_encounter/clinical_synopsis/synopsis:0|value',
+  // Composition-level
+  lang:         'outpatient_encounter/language|code',
+  langTerm:     'outpatient_encounter/language|terminology',
+  territory:    'outpatient_encounter/territory|code',
+  territoryTerm:'outpatient_encounter/territory|terminology',
+  startTime:    'outpatient_encounter/context/start_time',
+  setting:      'outpatient_encounter/context/setting|code',
+  settingVal:   'outpatient_encounter/context/setting|value',
+  settingTerm:  'outpatient_encounter/context/setting|terminology',
+  category:     'outpatient_encounter/category|code',
+  categoryVal:  'outpatient_encounter/category|value',
+  categoryTerm: 'outpatient_encounter/category|terminology',
+  composer:     'outpatient_encounter/composer|name',
+  // reason_for_encounter
+  presenting:   'outpatient_encounter/reason_for_encounter:0/presenting_problem|value',
+  reasonLang:   'outpatient_encounter/reason_for_encounter:0/language|code',
+  reasonLangT:  'outpatient_encounter/reason_for_encounter:0/language|terminology',
+  reasonEnc:    'outpatient_encounter/reason_for_encounter:0/encoding|code',
+  reasonEncT:   'outpatient_encounter/reason_for_encounter:0/encoding|terminology',
+  // story_history
+  story:        'outpatient_encounter/story_history:0/any_event:0/story|value',
+  storyTime:    'outpatient_encounter/story_history:0/any_event:0/time',
+  storyLang:    'outpatient_encounter/story_history:0/language|code',
+  storyLangT:   'outpatient_encounter/story_history:0/language|terminology',
+  storyEnc:     'outpatient_encounter/story_history:0/encoding|code',
+  storyEncT:    'outpatient_encounter/story_history:0/encoding|terminology',
+  // physical_examination_findings
+  exam:         'outpatient_encounter/physical_examination_findings:0/any_event:0/description|value',
+  examTime:     'outpatient_encounter/physical_examination_findings:0/any_event:0/time',
+  examLang:     'outpatient_encounter/physical_examination_findings:0/language|code',
+  examLangT:    'outpatient_encounter/physical_examination_findings:0/language|terminology',
+  examEnc:      'outpatient_encounter/physical_examination_findings:0/encoding|code',
+  examEncT:     'outpatient_encounter/physical_examination_findings:0/encoding|terminology',
+  // problem_diagnosis
+  diagName:     'outpatient_encounter/problem_diagnosis:0/problem_diagnosis_name|value',
+  diagCode:     'outpatient_encounter/problem_diagnosis:0/problem_diagnosis_name|code',
+  diagTerm:     'outpatient_encounter/problem_diagnosis:0/problem_diagnosis_name|terminology',
+  diagLang:     'outpatient_encounter/problem_diagnosis:0/language|code',
+  diagLangT:    'outpatient_encounter/problem_diagnosis:0/language|terminology',
+  diagEnc:      'outpatient_encounter/problem_diagnosis:0/encoding|code',
+  diagEncT:     'outpatient_encounter/problem_diagnosis:0/encoding|terminology',
+  // clinical_synopsis
+  synopsis:     'outpatient_encounter/clinical_synopsis:0/synopsis|value',
+  synopsisLang: 'outpatient_encounter/clinical_synopsis:0/language|code',
+  synopsisLangT:'outpatient_encounter/clinical_synopsis:0/language|terminology',
+  synopsisEnc:  'outpatient_encounter/clinical_synopsis:0/encoding|code',
+  synopsisEncT: 'outpatient_encounter/clinical_synopsis:0/encoding|terminology',
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -188,18 +223,13 @@ function activeEncounterDates(count: number, patientIndex: number): string[] {
 // EHRbase helpers
 // ─────────────────────────────────────────────────────────────────────────────
 async function createEHR(patient: Patient): Promise<string> {
+  // EHR_STATUS.subject must be PARTY_SELF in EHRbase — demographics stored in patients.json
   const body = {
     _type: 'EHR_STATUS',
     archetype_node_id: 'openEHR-EHR-EHR_STATUS.generic.v1',
     name: { value: 'EHR Status' },
     subject: {
-      _type: 'PARTY_IDENTIFIED',
-      name: patient.name,
-      identifiers: [
-        { _type: 'DV_IDENTIFIER', issuer: 'AmbientScribe', assigner: 'AmbientScribe', id: patient.id,     type: 'PatientID'   },
-        { _type: 'DV_IDENTIFIER', issuer: 'AmbientScribe', assigner: 'AmbientScribe', id: patient.dob,    type: 'DateOfBirth' },
-        { _type: 'DV_IDENTIFIER', issuer: 'AmbientScribe', assigner: 'AmbientScribe', id: patient.gender, type: 'Gender'      },
-      ],
+      _type: 'PARTY_SELF',
       external_ref: {
         _type: 'PARTY_REF',
         id: { _type: 'GENERIC_ID', value: patient.id, scheme: PATIENT_NAMESPACE },
@@ -221,8 +251,16 @@ async function createEHR(patient: Patient): Promise<string> {
     throw new Error(`EHR creation failed for ${patient.id} — HTTP ${res.status}: ${await res.text()}`)
   }
 
-  const data = await res.json() as { ehr_id: { value: string } }
-  return data.ehr_id.value
+  // EHRbase may return the ehr_id in the body or in the Location header
+  let ehrId: string = ''
+  const location = res.headers.get('Location') ?? res.headers.get('location') ?? ''
+  if (location) ehrId = location.split('/').pop() ?? ''
+  if (!ehrId) {
+    const body = await res.text()
+    try { ehrId = (JSON.parse(body) as { ehr_id?: { value: string } }).ehr_id?.value ?? '' } catch { /* */ }
+  }
+  if (!ehrId) throw new Error(`EHR creation failed for ${patient.id} — could not extract EHR ID`)
+  return ehrId
 }
 
 async function createEncounter(
@@ -231,26 +269,44 @@ async function createEncounter(
   scenario: typeof SCENARIOS[number],
   encounterDate: string,
 ): Promise<string> {
+  const EN = 'en'
+  const ISO = 'ISO_639-1'
+  const UTF8 = 'UTF-8'
+  const IANA = 'IANA_character-sets'
+
   const flat: Record<string, string> = {
-    [P.startTime]:         encounterDate,
-    [P.facility]:          'AmbientScribe Clinic',
-    [P.composer]:          'Dr. Seed Script',
-    [P.presentingProblem]: scenario.reason,
-    [P.clinicalHistory]:   scenario.history,
-    [P.examFindings]:      scenario.exam,
-    [P.diagnosisName]:     scenario.diagnosisName,
-    [P.diagnosisCode]:     scenario.icdCode,
-    [P.diagnosisTerm]:     'ICD-11',
-    [P.synopsis]:          scenario.plan,
+    // composition metadata
+    [P.lang]:         EN,       [P.langTerm]:     ISO,
+    [P.territory]:    'GB',     [P.territoryTerm]:'ISO_3166-1',
+    [P.startTime]:    encounterDate,
+    [P.setting]:      '238',    [P.settingVal]:   'other care',  [P.settingTerm]:  'openehr',
+    [P.category]:     '433',    [P.categoryVal]:  'event',       [P.categoryTerm]: 'openehr',
+    [P.composer]:     'Dr. Seed Script',
+    // reason_for_encounter
+    [P.presenting]:   scenario.reason,
+    [P.reasonLang]:   EN,  [P.reasonLangT]:  ISO,  [P.reasonEnc]:   UTF8, [P.reasonEncT]:   IANA,
+    // story_history
+    [P.story]:        scenario.history,
+    [P.storyTime]:    encounterDate,
+    [P.storyLang]:    EN,  [P.storyLangT]:   ISO,  [P.storyEnc]:    UTF8, [P.storyEncT]:    IANA,
+    // physical_examination_findings
+    [P.exam]:         scenario.exam,
+    [P.examTime]:     encounterDate,
+    [P.examLang]:     EN,  [P.examLangT]:    ISO,  [P.examEnc]:     UTF8, [P.examEncT]:     IANA,
+    // problem_diagnosis
+    [P.diagName]:     scenario.diagnosisName,
+    [P.diagCode]:     scenario.icdCode,
+    [P.diagTerm]:     'ICD-11',
+    [P.diagLang]:     EN,  [P.diagLangT]:    ISO,  [P.diagEnc]:     UTF8, [P.diagEncT]:     IANA,
+    // clinical_synopsis
+    [P.synopsis]:     scenario.plan,
+    [P.synopsisLang]: EN,  [P.synopsisLangT]:ISO,  [P.synopsisEnc]: UTF8, [P.synopsisEncT]: IANA,
   }
 
+  // Use EhrScape FLAT endpoint (EHRbase 0.30 openEHR v1 has name-validation issue with FLAT)
   const res = await fetch(
-    `${EHRBASE_URL}/ehr/${ehrId}/composition?format=FLAT&templateId=${TEMPLATE_ID}`,
-    {
-      method: 'POST',
-      headers: jsonHeaders(),
-      body: JSON.stringify(flat),
-    }
+    `${ECIS_URL}/composition?format=FLAT&templateId=${TEMPLATE_ID}&ehrId=${ehrId}`,
+    { method: 'POST', headers: jsonHeaders(), body: JSON.stringify(flat) }
   )
 
   if (!res.ok) {
@@ -259,8 +315,8 @@ async function createEncounter(
     )
   }
 
-  const data = await res.json() as { uid?: { value: string } }
-  return data.uid?.value ?? 'unknown'
+  const data = await res.json() as { compositionUid?: string }
+  return data.compositionUid ?? 'unknown'
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -9,31 +9,32 @@
 import { EHRBASE_URL, TEMPLATE_ID, AUTH_HEADER } from './config.ts'
 
 // ── Step 1: fetch the web template (describes all FLAT paths) ──────────────
-const wtRes = await fetch(
-  `${EHRBASE_URL}/definition/template/adl1.4/${TEMPLATE_ID}`,
-  {
-    headers: {
-      Authorization: AUTH_HEADER,
-      Accept: 'application/openehr.wt.flat.schema+json',
-    },
-  }
-)
+// Try web template with flat schema accept header first
+const wtAccept = [
+  'application/openehr.wt.flat.schema+json',
+  'application/openehr.wt+json',
+  'application/json',
+]
 
-if (!wtRes.ok) {
-  console.error(`Failed to fetch web template — HTTP ${wtRes.status}`)
-  console.error(await wtRes.text())
-  process.exit(1)
+let wt: Record<string, unknown> | null = null
+for (const accept of wtAccept) {
+  const r = await fetch(`${EHRBASE_URL}/definition/template/adl1.4/${TEMPLATE_ID}`, {
+    headers: { Authorization: AUTH_HEADER, Accept: accept },
+  })
+  if (r.ok) {
+    wt = await r.json() as Record<string, unknown>
+    console.log(`Web template fetched with Accept: ${accept}`)
+    break
+  }
 }
 
-const wt = await wtRes.json() as Record<string, unknown>
-
-// ── Step 2: also fetch an example FLAT composition ────────────────────────
+// ── Step 2: fetch an example FLAT composition ─────────────────────────────
 const exRes = await fetch(
-  `${EHRBASE_URL}/definition/template/adl1.4/${TEMPLATE_ID}/example`,
+  `${EHRBASE_URL}/definition/template/adl1.4/${TEMPLATE_ID}/example?format=FLAT`,
   {
     headers: {
       Authorization: AUTH_HEADER,
-      Accept: 'application/json',
+      Accept: 'application/json, */*',
     },
   }
 )
@@ -47,8 +48,13 @@ if (exRes.ok) {
   paths.forEach(p => console.log(` ${p}`))
   console.log(`\nTotal: ${paths.length} paths`)
 } else {
-  console.warn(`Example endpoint not available (HTTP ${exRes.status}) — falling back to web template tree.\n`)
-  printWebTemplateTree(wt)
+  console.warn(`Example endpoint not available (HTTP ${exRes.status})`)
+  if (wt) {
+    printWebTemplateTree(wt)
+  } else {
+    console.error('Neither example nor web template endpoint available on this EHRbase version.')
+    console.log('\nFalling back: manually verify paths by running seed.ts and checking the EHRbase logs.')
+  }
 }
 
 function printWebTemplateTree(wt: Record<string, unknown>) {

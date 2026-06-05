@@ -23,7 +23,7 @@ const res = await fetch(`${EHRBASE_URL}/definition/template/adl1.4`, {
   headers: {
     Authorization: AUTH_HEADER,
     'Content-Type': 'application/xml',
-    Accept: 'application/json',
+    Accept: 'application/xml, application/json, */*',
   },
   body: optContent,
 })

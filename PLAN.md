@@ -16,14 +16,14 @@ Each phase ends with a **verification checkpoint**. Do NOT start the next phase 
 
 ### Tasks
 - [x] 1.1 Write `docker-compose.yml` — EHRbase + PostgreSQL (ports 8086 / 5436)
-- [ ] 1.2 Verify EHRbase health: `GET http://localhost:8086/ehrbase/rest/openehr/v1/definition/template/adl1.4`
-- [ ] 1.3 Build `outpatient_encounter` template in Archetype Designer
+- [x] 1.2 Verify EHRbase health: `GET http://localhost:8086/ehrbase/rest/openehr/v1/definition/template/adl1.4`
+- [x] 1.3 Build `outpatient_encounter` template in Archetype Designer
   - Archetypes: encounter shell, reason_for_encounter, story, exam, problem_diagnosis, clinical_synopsis
-- [ ] 1.4 Upload OPT to EHRbase, verify template appears in template list
-- [ ] 1.5 Record actual FLAT paths from a test POST — do NOT trust designer paths
+- [x] 1.4 Upload OPT to EHRbase, verify template appears in template list
+- [x] 1.5 Record actual FLAT paths from a test POST — do NOT trust designer paths
 - [x] 1.6 Write `scripts/seed.ts` — 20 EHRs (AMB-001 to AMB-020), 2–3 encounters each
   - AMB-001 to AMB-005: last encounter >12 weeks ago (for worklist overdue flag)
-- [ ] 1.7 Run seed script, verify row counts via AQL
+- [x] 1.7 Run seed script, verify row counts via AQL
 
 ### Checkpoint 1
 ```
@@ -138,9 +138,14 @@ _Add notes here as work progresses — decisions made, paths confirmed, failures
 - Patient demographics stored as PARTY_IDENTIFIED (name + DV_IDENTIFIER list for DOB/gender) — queryable via AQL on `e/ehr_status/subject/name` and `e/ehr_status/subject/identifiers`
 - FLAT paths in `scripts/seed.ts` are best-guess defaults — run `npm run discover-paths` after template upload to confirm
 - Template OPT not committed; see `templates/README.md` for build steps
+- OPT uses `COMPOSITION.report.v1` as root (not encounter.v1) — EHRbase 0.30 FLAT API has a name-resolution bug with encounter.v1
+- FLAT compositions posted via `/ecis/v1` (EhrScape endpoint) not `/openehr/v1` — same underlying service, different validation path; openEHR v1 throws "name null" before skeleton name is applied
+- EHR_STATUS.subject must be PARTY_SELF, not PARTY_IDENTIFIED — patient demographics stored in `scripts/patients.json`
+- Confirmed FLAT paths: `story_history`, `physical_examination_findings` (not `story`, `exam`) — see P block in seed.ts
+- AQL count confirmed: 47 compositions across 20 EHRs (AMB-001..020)
 
 - Phase started: 2026-06-05
-- Phase 1 done: —
+- Phase 1 done: 2026-06-05
 - Phase 2 done: —
 - Phase 3 done: —
 - Phase 4 done: —
