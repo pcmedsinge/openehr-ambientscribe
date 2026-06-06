@@ -174,7 +174,7 @@ export const EHRbaseService = {
       composerName?: string
     }
   ): Promise<string> {
-    const flat: Record<string, string> = {
+    const raw: Record<string, string> = {
       ...FLAT_DEFAULTS,
       [FLAT.startTime]:  fields.visitDate,
       [FLAT.storyTime]:  fields.visitDate,
@@ -184,14 +184,22 @@ export const EHRbaseService = {
       [FLAT.story]:      fields.history,
       [FLAT.exam]:       fields.examFindings,
       [FLAT.diagName]:   fields.diagnosisName,
-      // Only include code + terminology when a code is actually provided.
-      // An empty CODE_PHRASE fails EHRbase's Code_string_valid invariant.
+      // code + terminology only when a code is provided —
+      // an empty CODE_PHRASE fails EHRbase's Code_string_valid invariant
       ...(fields.diagnosisCode.trim() && {
         [FLAT.diagCode]: fields.diagnosisCode.trim(),
         [FLAT.diagTerm]: 'ICD-11',
       }),
       [FLAT.synopsis]:   fields.managementPlan,
     }
+
+    // Strip any field with an empty or whitespace-only value before posting.
+    // Sending empty strings for optional fields can cause EHRbase validation
+    // errors. This also future-proofs Phase 4 where AI extraction may return
+    // empty strings for fields it could not extract.
+    const flat = Object.fromEntries(
+      Object.entries(raw).filter(([, v]) => v.trim() !== '')
+    )
 
     const res = await fetch(
       `${ECIS}/composition?format=FLAT&templateId=${TEMPLATE_ID}&ehrId=${ehrId}`,
