@@ -184,8 +184,12 @@ export const EHRbaseService = {
       [FLAT.story]:      fields.history,
       [FLAT.exam]:       fields.examFindings,
       [FLAT.diagName]:   fields.diagnosisName,
-      [FLAT.diagCode]:   fields.diagnosisCode,
-      [FLAT.diagTerm]:   'ICD-11',
+      // Only include code + terminology when a code is actually provided.
+      // An empty CODE_PHRASE fails EHRbase's Code_string_valid invariant.
+      ...(fields.diagnosisCode.trim() && {
+        [FLAT.diagCode]: fields.diagnosisCode.trim(),
+        [FLAT.diagTerm]: 'ICD-11',
+      }),
       [FLAT.synopsis]:   fields.managementPlan,
     }
 
