@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Layout from '../components/Layout'
 import { EHRbaseService, type PatientRow } from '../services/EHRbaseService'
 import { getPatientById } from '../data/patients'
 
@@ -16,70 +17,110 @@ export default function Worklist() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <PageShell><p className="text-gray-500 py-12 text-center">Loading patients...</p></PageShell>
-  if (error)   return <PageShell><p className="text-red-600 py-12 text-center">Error: {error}</p></PageShell>
+  const overdue = patients.filter(p => p.isOverdue).length
 
   return (
-    <PageShell>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Patient Worklist</h1>
-          <p className="text-sm text-gray-500 mt-1">{patients.length} patients</p>
-        </div>
+    <Layout>
+      {/* Page header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Patient Worklist</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          {loading ? 'Loading…' : `${patients.length} patients · ${overdue} overdue follow-up${overdue !== 1 ? 's' : ''}`}
+        </p>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Patient</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">ID</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Date of Birth</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Last Visit</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {patients.map(p => {
-              const demo = getPatientById(p.patientId)
-              return (
-                <tr
-                  key={p.ehrId}
-                  onClick={() => navigate(`/patient/${p.ehrId}`, { state: { patientId: p.patientId } })}
-                  className="hover:bg-blue-50 cursor-pointer transition-colors"
-                >
-                  <td className="px-4 py-3 font-medium text-gray-900">{demo?.name ?? p.patientId}</td>
-                  <td className="px-4 py-3 text-gray-500">{p.patientId}</td>
-                  <td className="px-4 py-3 text-gray-500">{demo?.dob ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-700">{formatDate(p.lastVisit)}</td>
-                  <td className="px-4 py-3">
-                    {p.isOverdue
-                      ? <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">Overdue</span>
-                      : <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">Active</span>
-                    }
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+      {/* Stats row */}
+      {!loading && !error && (
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <StatCard label="Total Patients" value={patients.length} color="blue" />
+          <StatCard label="Overdue (>12 wks)" value={overdue} color="red" />
+          <StatCard label="Active" value={patients.length - overdue} color="green" />
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {loading && (
+          <div className="p-12 text-center text-gray-400 text-sm">Loading patients…</div>
+        )}
+        {error && (
+          <div className="p-12 text-center text-red-500 text-sm">Error: {error}</div>
+        )}
+        {!loading && !error && (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50/70">
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wide text-xs">Patient</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wide text-xs">ID</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wide text-xs">Age</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wide text-xs">Last Visit</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wide text-xs">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {patients.map(p => {
+                const demo = getPatientById(p.patientId)
+                return (
+                  <tr
+                    key={p.ehrId}
+                    onClick={() => navigate(`/patient/${p.ehrId}`, { state: { patientId: p.patientId } })}
+                    className="hover:bg-blue-50/40 cursor-pointer transition-colors group"
+                  >
+                    <td className="px-5 py-3.5">
+                      <span className="font-medium text-gray-900 group-hover:text-blue-700 transition-colors">
+                        {demo?.name ?? p.patientId}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-400 font-mono text-xs">{p.patientId}</td>
+                    <td className="px-5 py-3.5 text-gray-600">{demo ? calcAge(demo.dob) : '—'}</td>
+                    <td className="px-5 py-3.5 text-gray-600">{formatDate(p.lastVisit)}</td>
+                    <td className="px-5 py-3.5">
+                      {p.isOverdue ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                          Overdue
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          Active
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
-    </PageShell>
+    </Layout>
   )
+}
+
+function StatCard({ label, value, color }: { label: string; value: number; color: 'blue' | 'red' | 'green' }) {
+  const colors = {
+    blue:  'bg-blue-50  border-blue-100  text-blue-700',
+    red:   'bg-red-50   border-red-100   text-red-700',
+    green: 'bg-emerald-50 border-emerald-100 text-emerald-700',
+  }
+  return (
+    <div className={`rounded-xl border p-4 ${colors[color]}`}>
+      <p className="text-2xl font-bold">{value}</p>
+      <p className="text-xs font-medium mt-0.5 opacity-70">{label}</p>
+    </div>
+  )
+}
+
+function calcAge(dob: string): number {
+  const today = new Date()
+  const birth = new Date(dob)
+  let age = today.getFullYear() - birth.getFullYear()
+  if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--
+  return age
 }
 
 function formatDate(iso: string) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-function PageShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-6 py-4">
-        <span className="font-semibold text-blue-700 text-lg">AmbientScribe</span>
-      </nav>
-      <main className="max-w-5xl mx-auto px-6 py-8">{children}</main>
-    </div>
-  )
 }

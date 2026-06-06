@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useParams, useLocation } from 'react-router-dom'
+import Layout from '../components/Layout'
 import { EHRbaseService, type EncounterDetail } from '../services/EHRbaseService'
 import { getPatientById } from '../data/patients'
 
-interface LocationState {
-  patientId?: string
-  ehrId?: string
-}
+interface LocationState { patientId?: string; ehrId?: string }
+
+const SECTIONS = [
+  { key: 'presentingProblem', label: 'Presenting Problem',    color: 'border-blue-400'    },
+  { key: 'history',           label: 'Clinical History',      color: 'border-purple-400'  },
+  { key: 'examFindings',      label: 'Examination Findings',  color: 'border-teal-400'    },
+  { key: 'diagnosisName',     label: 'Diagnosis',             color: 'border-amber-400'   },
+  { key: 'managementPlan',    label: 'Management Plan',       color: 'border-emerald-400' },
+] as const
 
 export default function ViewEncounter() {
   const { compositionId } = useParams<{ compositionId: string }>()
@@ -17,8 +23,6 @@ export default function ViewEncounter() {
   const [encounter, setEncounter] = useState<EncounterDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const navigate = useNavigate()
-
   useEffect(() => {
     if (!compositionId) return
     EHRbaseService.getEncounter(decodeURIComponent(compositionId))
@@ -27,71 +31,55 @@ export default function ViewEncounter() {
       .finally(() => setLoading(false))
   }, [compositionId])
 
+  const breadcrumbs = [
+    { label: 'Worklist', to: '/' },
+    { label: demo?.name ?? 'Patient', to: ehrId ? `/patient/${ehrId}` : undefined },
+    { label: encounter ? formatDate(encounter.visitDate) : 'Encounter' },
+  ]
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-3">
-        <button
-          onClick={() => navigate(ehrId ? `/patient/${ehrId}` : '/', { state: { patientId } })}
-          className="text-sm text-gray-500 hover:text-blue-700"
-        >
-          ← {demo?.name ?? 'Patient'}
-        </button>
-        <span className="text-gray-300">|</span>
-        <span className="font-semibold text-blue-700 text-lg">AmbientScribe</span>
-      </nav>
+    <Layout breadcrumbs={breadcrumbs}>
+      {loading && <div className="py-20 text-center text-gray-400 text-sm">Loading encounter…</div>}
+      {error   && <div className="py-20 text-center text-red-500 text-sm">Error: {error}</div>}
 
-      <main className="max-w-3xl mx-auto px-6 py-8">
-        {loading && <p className="text-gray-500">Loading encounter...</p>}
-        {error   && <p className="text-red-600">Error: {error}</p>}
-
-        {encounter && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">
-                  {formatDate(encounter.visitDate)}
-                </h1>
-                {demo && <p className="text-sm text-gray-500 mt-0.5">{demo.name} · {demo.id}</p>}
-              </div>
-            </div>
-
-            <Section title="Presenting Problem">
-              {encounter.presentingProblem}
-            </Section>
-
-            <Section title="Clinical History">
-              {encounter.history}
-            </Section>
-
-            <Section title="Examination Findings">
-              {encounter.examFindings}
-            </Section>
-
-            <Section title="Diagnosis">
-              <span className="text-gray-900">{encounter.diagnosisName}</span>
-              {encounter.diagnosisCode && (
-                <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-mono">
-                  {encounter.diagnosisCode}
-                </span>
+      {encounter && (
+        <div className="space-y-4">
+          {/* Encounter header */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">{formatDate(encounter.visitDate)}</h1>
+              {demo && (
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {demo.name} · {demo.id} · {demo.gender}
+                </p>
               )}
-            </Section>
-
-            <Section title="Management Plan">
-              {encounter.managementPlan}
-            </Section>
+            </div>
+            {encounter.diagnosisCode && (
+              <span className="text-xs bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1 rounded-full font-mono font-medium">
+                {encounter.diagnosisCode}
+              </span>
+            )}
           </div>
-        )}
-      </main>
-    </div>
-  )
-}
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg p-5">
-      <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{title}</h2>
-      <p className="text-gray-800 text-sm leading-relaxed">{children || <span className="text-gray-300">—</span>}</p>
-    </div>
+          {/* Clinical sections */}
+          {SECTIONS.map(section => {
+            const value = encounter[section.key as keyof EncounterDetail]
+            return (
+              <div key={section.key} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <div className={`border-l-4 ${section.color} pl-4`}>
+                  <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+                    {section.label}
+                  </h2>
+                  <p className="text-gray-800 text-sm leading-relaxed">
+                    {value || <span className="text-gray-300 italic">Not recorded</span>}
+                  </p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </Layout>
   )
 }
 
