@@ -184,12 +184,11 @@ export const EHRbaseService = {
       [FLAT.story]:      fields.history,
       [FLAT.exam]:       fields.examFindings,
       [FLAT.diagName]:   fields.diagnosisName,
-      // code + terminology only when a code is provided —
-      // an empty CODE_PHRASE fails EHRbase's Code_string_valid invariant
-      ...(fields.diagnosisCode.trim() && {
-        [FLAT.diagCode]: fields.diagnosisCode.trim(),
-        [FLAT.diagTerm]: 'ICD-11',
-      }),
+      // DV_CODED_TEXT always requires a non-empty code + terminology.
+      // Use the provided ICD-11 code, or fall back to "local" terminology
+      // with "unspecified" so the field is always valid.
+      [FLAT.diagCode]:   fields.diagnosisCode.trim() || 'unspecified',
+      [FLAT.diagTerm]:   fields.diagnosisCode.trim() ? 'ICD-11' : 'local',
       [FLAT.synopsis]:   fields.managementPlan,
     }
 
