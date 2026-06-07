@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import Layout from '../components/Layout'
 import { EHRbaseService, type EncounterDetail } from '../services/EHRbaseService'
-import { getPatientById } from '../data/patients'
+import { getPatientById, type PatientDemographics } from '../data/patients'
 
 interface LocationState { patientId?: string; ehrId?: string }
 
@@ -17,20 +17,34 @@ const SECTIONS = [
 export default function ViewEncounter() {
   const { compositionId } = useParams<{ compositionId: string }>()
   const { state } = useLocation()
-  const { patientId, ehrId } = (state as LocationState) ?? {}
-  const demo = patientId ? getPatientById(patientId) : undefined
+  const navState = (state as LocationState) ?? {}
 
   const [encounter, setEncounter] = useState<EncounterDetail | null>(null)
+  const [demo, setDemo] = useState<PatientDemographics | undefined>(
+    navState.patientId ? getPatientById(navState.patientId) : undefined
+  )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
   useEffect(() => {
     if (!compositionId) return
     EHRbaseService.getEncounter(decodeURIComponent(compositionId))
-      .then(setEncounter)
+      .then(async enc => {
+        setEncounter(enc)
+        // Resolve patient demographics if not already known from nav state
+        if (enc && !demo) {
+          const ehrId = navState.ehrId ?? enc.ehrId
+          if (ehrId) {
+            const patientId = await EHRbaseService.resolvePatientId(ehrId)
+            if (patientId) setDemo(getPatientById(patientId))
+          }
+        }
+      })
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false))
   }, [compositionId])
 
+  const ehrId = navState.ehrId ?? encounter?.ehrId
   const breadcrumbs = [
     { label: 'Worklist', to: '/' },
     { label: demo?.name ?? 'Patient', to: ehrId ? `/patient/${ehrId}` : undefined },

@@ -46,6 +46,7 @@ export interface EncounterRow {
 
 export interface EncounterDetail {
   compositionId: string
+  ehrId: string        // EHR UUID — used to resolve patient demographics if not in nav state
   visitDate: string
   presentingProblem: string
   history: string
@@ -145,11 +146,12 @@ export const EHRbaseService = {
       return null
     }
 
-    const data = await res.json() as { composition?: Record<string, string> }
+    const data = await res.json() as { composition?: Record<string, string>; ehrId?: string }
     const flat = data.composition ?? (data as unknown as Record<string, string>)
 
     return {
       compositionId,
+      ehrId:             data.ehrId ?? '',
       visitDate:         flat[FLAT_READ.startTime]   ?? '',
       presentingProblem: flat[FLAT_READ.presenting]  ?? '',
       history:           flat[FLAT_READ.story]       ?? '',
@@ -158,6 +160,17 @@ export const EHRbaseService = {
       diagnosisCode:     flat[FLAT_READ.diagCode]    ?? '',
       managementPlan:    flat[FLAT_READ.synopsis]    ?? '',
     }
+  },
+
+  // Resolves the patient ID (e.g. AMB-010) from an EHR UUID.
+  // Used as fallback when nav state doesn't carry patientId.
+  async resolvePatientId(ehrId: string): Promise<string> {
+    const rows = await aql<[string]>(`
+      SELECT ${AQL.patientId} as patient_id
+      FROM EHR e
+      WHERE ${AQL.ehrId} = '${ehrId}'
+    `)
+    return rows[0]?.[0] ?? ''
   },
 
   // Creates a new encounter composition.
