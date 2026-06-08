@@ -18,23 +18,26 @@ export default function Worklist() {
   }, [])
 
   const overdue = patients.filter(p => p.isOverdue).length
+  const active  = patients.length - overdue
 
   return (
     <Layout>
       {/* Page header */}
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-slate-100 tracking-tight">Patient Worklist</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          {loading ? 'Loading…' : `${patients.length} patients · ${overdue} overdue follow-up${overdue !== 1 ? 's' : ''}`}
-        </p>
+      <div className="flex items-end justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-100 tracking-tight">Patient Worklist</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {loading ? 'Loading…' : `${patients.length} patients · ${overdue} overdue`}
+          </p>
+        </div>
       </div>
 
-      {/* Stats row */}
+      {/* Stat cards */}
       {!loading && !error && (
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <StatCard label="Total Patients"   value={patients.length}          color="indigo" />
-          <StatCard label="Overdue (>12 wks)" value={overdue}                 color="rose"   />
-          <StatCard label="Active"            value={patients.length - overdue} color="emerald" />
+        <div className="grid grid-cols-3 gap-4 mb-6 max-w-xl">
+          <StatCard label="Total"   value={patients.length} color="indigo"  />
+          <StatCard label="Overdue" value={overdue}         color="rose"    />
+          <StatCard label="Active"  value={active}          color="emerald" />
         </div>
       )}
 
@@ -50,11 +53,12 @@ export default function Worklist() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/[0.06]">
-                <th className="text-left px-5 py-3 font-medium text-slate-600 uppercase tracking-widest text-[11px]">Patient</th>
-                <th className="text-left px-5 py-3 font-medium text-slate-600 uppercase tracking-widest text-[11px]">ID</th>
-                <th className="text-left px-5 py-3 font-medium text-slate-600 uppercase tracking-widest text-[11px]">Age</th>
-                <th className="text-left px-5 py-3 font-medium text-slate-600 uppercase tracking-widest text-[11px]">Last Visit</th>
-                <th className="text-left px-5 py-3 font-medium text-slate-600 uppercase tracking-widest text-[11px]">Status</th>
+                <th className="text-left px-5 py-3 text-[11px] font-medium text-slate-600 uppercase tracking-widest">Patient</th>
+                <th className="text-left px-5 py-3 text-[11px] font-medium text-slate-600 uppercase tracking-widest w-28">ID</th>
+                <th className="text-left px-5 py-3 text-[11px] font-medium text-slate-600 uppercase tracking-widest w-16">Age</th>
+                <th className="text-left px-5 py-3 text-[11px] font-medium text-slate-600 uppercase tracking-widest w-36">Last Visit</th>
+                <th className="text-left px-5 py-3 text-[11px] font-medium text-slate-600 uppercase tracking-widest w-28">Status</th>
+                <th className="w-10" />
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
@@ -65,11 +69,12 @@ export default function Worklist() {
                   <tr
                     key={p.ehrId}
                     onClick={() => navigate(`/patient/${p.ehrId}`, { state: { patientId: p.patientId } })}
-                    className="hover:bg-white/[0.03] cursor-pointer transition-colors group"
+                    className="hover:bg-white/[0.05] cursor-pointer transition-colors group"
                   >
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-500/[0.15] text-indigo-300 text-xs font-bold flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-indigo-500/[0.15] text-indigo-300
+                          text-xs font-bold flex items-center justify-center shrink-0">
                           {initials}
                         </div>
                         <span className="font-medium text-slate-200 group-hover:text-white transition-colors">
@@ -77,21 +82,26 @@ export default function Worklist() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-slate-600 font-mono text-xs">{p.patientId}</td>
+                    <td className="px-5 py-3.5 text-slate-500 font-mono text-xs">{p.patientId}</td>
                     <td className="px-5 py-3.5 text-slate-400">{demo ? calcAge(demo.dob) : '—'}</td>
-                    <td className="px-5 py-3.5 text-slate-400">{formatDate(p.lastVisit)}</td>
+                    <td className="px-5 py-3.5 text-slate-400 tabular-nums">{formatDate(p.lastVisit)}</td>
                     <td className="px-5 py-3.5">
                       {p.isOverdue ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-500/[0.10] text-rose-400 border border-rose-500/20">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                          text-xs font-medium bg-rose-500/[0.10] text-rose-400 border border-rose-500/20">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 overdue-dot shrink-0" />
                           Overdue
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/[0.10] text-emerald-400 border border-emerald-500/20">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                          text-xs font-medium bg-emerald-500/[0.10] text-emerald-400 border border-emerald-500/20">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                           Active
                         </span>
                       )}
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="text-slate-700 group-hover:text-indigo-400 transition-colors text-base">›</span>
                     </td>
                   </tr>
                 )
@@ -112,9 +122,9 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   }
   const c = cfg[color]
   return (
-    <div className={`rounded-xl border p-5 ${c.bg} ${c.border}`}>
-      <p className={`text-3xl font-bold tabular-nums ${c.val}`}>{value}</p>
-      <p className={`text-xs font-medium mt-1.5 ${c.sub}`}>{label}</p>
+    <div className={`rounded-xl border p-4 ${c.bg} ${c.border}`}>
+      <p className={`text-2xl font-bold tabular-nums ${c.val}`}>{value}</p>
+      <p className={`text-xs font-medium mt-1 ${c.sub}`}>{label}</p>
     </div>
   )
 }
@@ -123,7 +133,8 @@ function calcAge(dob: string): number {
   const today = new Date()
   const birth = new Date(dob)
   let age = today.getFullYear() - birth.getFullYear()
-  if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--
+  if (today.getMonth() < birth.getMonth() ||
+     (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--
   return age
 }
 

@@ -10,6 +10,16 @@ Clinical documentation takes 2+ hours of a doctor's day. Clinicians dictate in n
 
 ---
 
+## Screenshots
+
+| Worklist | AI Extraction |
+|----------|---------------|
+| ![Worklist](docs/screenshots/worklist.png) | ![AI Extraction](docs/screenshots/new-encounter.png) |
+
+> To add screenshots: take a full-page capture of the Worklist and one of New Encounter with fields populated after AI extraction. Save to `docs/screenshots/`.
+
+---
+
 ## What it does
 
 | Feature | Description |
