@@ -23,8 +23,8 @@ export default function Worklist() {
     <Layout>
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Patient Worklist</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-xl font-semibold text-slate-100 tracking-tight">Patient Worklist</h1>
+        <p className="text-sm text-slate-500 mt-1">
           {loading ? 'Loading…' : `${patients.length} patients · ${overdue} overdue follow-up${overdue !== 1 ? 's' : ''}`}
         </p>
       </div>
@@ -32,57 +32,63 @@ export default function Worklist() {
       {/* Stats row */}
       {!loading && !error && (
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <StatCard label="Total Patients" value={patients.length} color="blue" />
-          <StatCard label="Overdue (>12 wks)" value={overdue} color="red" />
-          <StatCard label="Active" value={patients.length - overdue} color="green" />
+          <StatCard label="Total Patients"   value={patients.length}          color="indigo" />
+          <StatCard label="Overdue (>12 wks)" value={overdue}                 color="rose"   />
+          <StatCard label="Active"            value={patients.length - overdue} color="emerald" />
         </div>
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-[#0f0f1a] rounded-xl border border-white/[0.07] overflow-hidden">
         {loading && (
-          <div className="p-12 text-center text-gray-400 text-sm">Loading patients…</div>
+          <div className="p-16 text-center text-slate-600 text-sm">Loading patients…</div>
         )}
         {error && (
-          <div className="p-12 text-center text-red-500 text-sm">Error: {error}</div>
+          <div className="p-16 text-center text-rose-500 text-sm">Error: {error}</div>
         )}
         {!loading && !error && (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wide text-xs">Patient</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wide text-xs">ID</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wide text-xs">Age</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wide text-xs">Last Visit</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wide text-xs">Status</th>
+              <tr className="border-b border-white/[0.06]">
+                <th className="text-left px-5 py-3 font-medium text-slate-600 uppercase tracking-widest text-[11px]">Patient</th>
+                <th className="text-left px-5 py-3 font-medium text-slate-600 uppercase tracking-widest text-[11px]">ID</th>
+                <th className="text-left px-5 py-3 font-medium text-slate-600 uppercase tracking-widest text-[11px]">Age</th>
+                <th className="text-left px-5 py-3 font-medium text-slate-600 uppercase tracking-widest text-[11px]">Last Visit</th>
+                <th className="text-left px-5 py-3 font-medium text-slate-600 uppercase tracking-widest text-[11px]">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-white/[0.04]">
               {patients.map(p => {
                 const demo = getPatientById(p.patientId)
+                const initials = (demo?.name ?? p.patientId).slice(0, 2).toUpperCase()
                 return (
                   <tr
                     key={p.ehrId}
                     onClick={() => navigate(`/patient/${p.ehrId}`, { state: { patientId: p.patientId } })}
-                    className="hover:bg-blue-50/40 cursor-pointer transition-colors group"
+                    className="hover:bg-white/[0.03] cursor-pointer transition-colors group"
                   >
                     <td className="px-5 py-3.5">
-                      <span className="font-medium text-gray-900 group-hover:text-blue-700 transition-colors">
-                        {demo?.name ?? p.patientId}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-indigo-500/[0.15] text-indigo-300 text-xs font-bold flex items-center justify-center shrink-0">
+                          {initials}
+                        </div>
+                        <span className="font-medium text-slate-200 group-hover:text-white transition-colors">
+                          {demo?.name ?? p.patientId}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-5 py-3.5 text-gray-400 font-mono text-xs">{p.patientId}</td>
-                    <td className="px-5 py-3.5 text-gray-600">{demo ? calcAge(demo.dob) : '—'}</td>
-                    <td className="px-5 py-3.5 text-gray-600">{formatDate(p.lastVisit)}</td>
+                    <td className="px-5 py-3.5 text-slate-600 font-mono text-xs">{p.patientId}</td>
+                    <td className="px-5 py-3.5 text-slate-400">{demo ? calcAge(demo.dob) : '—'}</td>
+                    <td className="px-5 py-3.5 text-slate-400">{formatDate(p.lastVisit)}</td>
                     <td className="px-5 py-3.5">
                       {p.isOverdue ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-500/[0.10] text-rose-400 border border-rose-500/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 overdue-dot shrink-0" />
                           Overdue
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/[0.10] text-emerald-400 border border-emerald-500/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                           Active
                         </span>
                       )}
@@ -98,16 +104,17 @@ export default function Worklist() {
   )
 }
 
-function StatCard({ label, value, color }: { label: string; value: number; color: 'blue' | 'red' | 'green' }) {
-  const colors = {
-    blue:  'bg-blue-50  border-blue-100  text-blue-700',
-    red:   'bg-red-50   border-red-100   text-red-700',
-    green: 'bg-emerald-50 border-emerald-100 text-emerald-700',
+function StatCard({ label, value, color }: { label: string; value: number; color: 'indigo' | 'rose' | 'emerald' }) {
+  const cfg = {
+    indigo:  { bg: 'bg-indigo-500/[0.08]',  border: 'border-indigo-500/20',  val: 'text-indigo-300',  sub: 'text-indigo-400/60'  },
+    rose:    { bg: 'bg-rose-500/[0.08]',    border: 'border-rose-500/20',    val: 'text-rose-300',    sub: 'text-rose-400/60'    },
+    emerald: { bg: 'bg-emerald-500/[0.08]', border: 'border-emerald-500/20', val: 'text-emerald-300', sub: 'text-emerald-400/60' },
   }
+  const c = cfg[color]
   return (
-    <div className={`rounded-xl border p-4 ${colors[color]}`}>
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-xs font-medium mt-0.5 opacity-70">{label}</p>
+    <div className={`rounded-xl border p-5 ${c.bg} ${c.border}`}>
+      <p className={`text-3xl font-bold tabular-nums ${c.val}`}>{value}</p>
+      <p className={`text-xs font-medium mt-1.5 ${c.sub}`}>{label}</p>
     </div>
   )
 }

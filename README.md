@@ -1,6 +1,6 @@
 # AmbientScribe
 
-![Status](https://img.shields.io/badge/status-in%20progress-yellow) ![Phase](https://img.shields.io/badge/phase-3%20of%204-blue) ![Stack](https://img.shields.io/badge/stack-React%20%7C%20EHRbase%20%7C%20GPT--4o-informational)
+![Status](https://img.shields.io/badge/status-complete-brightgreen) ![Phase](https://img.shields.io/badge/phase-4%20of%204-blue) ![Stack](https://img.shields.io/badge/stack-React%20%7C%20EHRbase%20%7C%20GPT--4o-informational)
 
 > Paste a free-text clinical note → AI extracts structured data → openEHR form auto-populates → practitioner confirms and submits.
 
@@ -22,9 +22,9 @@ AmbientScribe is a clinical documentation tool that bridges unstructured dictati
 
 | Layer | Choice |
 |-------|--------|
-| Frontend | React 18 + Vite + TypeScript + Tailwind CSS |
+| Frontend | React 19 + Vite + TypeScript + Tailwind CSS |
 | AI | OpenAI GPT-4o (`json_object` mode, single-call, no streaming) |
-| Clinical data store | EHRbase (openEHR CDR) |
+| Clinical data store | EHRbase 0.30 (openEHR CDR) |
 | Database | PostgreSQL |
 | Service layer | Custom `EHRbaseService.ts` typed class |
 
@@ -36,7 +36,7 @@ AmbientScribe is a clinical documentation tool that bridges unstructured dictati
 
 | Archetype | Purpose |
 |-----------|---------|
-| `openEHR-EHR-COMPOSITION.encounter.v1` | Outer composition shell |
+| `openEHR-EHR-COMPOSITION.report.v1` | Outer composition shell |
 | `openEHR-EHR-EVALUATION.reason_for_encounter.v1` | Presenting condition |
 | `openEHR-EHR-OBSERVATION.story.v1` | Clinical history |
 | `openEHR-EHR-OBSERVATION.exam.v1` | Examination findings |
@@ -61,32 +61,55 @@ AmbientScribe is a clinical documentation tool that bridges unstructured dictati
 |-------|------|--------|
 | 1 — Infrastructure & Data | EHRbase + template + 20-patient seed | ✅ Complete |
 | 2 — Core UI Shell | Patient worklist + detail screens (read-only) | ✅ Complete |
-| 3 — Encounter Authoring | 4-step wizard, manual FLAT submit | 🔲 Not started |
-| 4 — AI + Versioning | GPT-4o extraction + ETag-based amend | 🔲 Not started |
-
-Each phase ends with a verification checkpoint. No phase starts until the previous checkpoint passes.
+| 3 — Encounter Authoring | 4-step wizard, manual FLAT submit | ✅ Complete |
+| 4 — AI + Versioning | GPT-4o extraction + ETag-based amend | ✅ Complete |
 
 ---
 
 ## Quick Start
 
-> Prerequisites: Docker Desktop, Node.js 20+, an OpenAI API key.
+> **Prerequisites:** Docker Desktop running, Node.js 20+, an OpenAI API key.
 
-```bash
-# 1. Start EHRbase + PostgreSQL
-docker compose up -d
+### 1. Add your OpenAI key
 
-# 2. Install frontend dependencies (after Phase 2 scaffold)
-cd frontend && npm install
+Create `frontend/.env.local` (never committed — already in `.gitignore`):
 
-# 3. Copy and fill in environment variables
-cp .env.example .env
+```
+VITE_OPENAI_API_KEY=sk-...
+```
 
-# 4. Run the seed script (after Phase 1 template upload)
-npx ts-node scripts/seed.ts
+### 2. Start everything
 
-# 5. Start the dev server
-npm run dev
+```powershell
+.\dev-start.ps1
+```
+
+This script:
+- Checks Docker is running
+- Starts EHRbase + PostgreSQL if not already up
+- Waits for EHRbase to be healthy
+- Uploads the `outpatient_encounter` template if missing
+- Checks that `frontend/.env.local` exists with a real API key
+- Installs frontend `node_modules` if missing
+- Opens the Vite dev server in a new terminal
+
+Then open **http://localhost:5173**
+
+### 3. Stop
+
+```powershell
+.\dev-stop.ps1          # stops dev server, leaves Docker running
+.\dev-stop.ps1 -Docker  # stops dev server AND Docker containers
+```
+
+### Re-seeding from scratch
+
+If you've run `docker compose down -v` and need to re-seed the 20 demo patients:
+
+```powershell
+cd scripts
+npm run upload-template
+npm run seed
 ```
 
 ---
@@ -103,5 +126,6 @@ npm run dev
 
 ## Documents
 
+- [`docs/flat-paths.md`](./docs/flat-paths.md) — full FLAT path reference, AQL paths, and EHRbase gotchas
 - [`CONCEPT.md`](./CONCEPT.md) — design rationale, architecture, and openEHR patterns
 - [`PLAN.md`](./PLAN.md) — phased task list, checkpoints, and risk register

@@ -1,23 +1,25 @@
 import { useEffect, useState } from 'react'
-import { useParams, useLocation } from 'react-router-dom'
+import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
+import Button from '../components/Button'
 import { EHRbaseService, type EncounterDetail } from '../services/EHRbaseService'
 import { getPatientById, type PatientDemographics } from '../data/patients'
 
 interface LocationState { patientId?: string; ehrId?: string }
 
 const SECTIONS = [
-  { key: 'presentingProblem', label: 'Presenting Problem',    color: 'border-blue-400'    },
-  { key: 'history',           label: 'Clinical History',      color: 'border-purple-400'  },
-  { key: 'examFindings',      label: 'Examination Findings',  color: 'border-teal-400'    },
-  { key: 'diagnosisName',     label: 'Diagnosis',             color: 'border-amber-400'   },
-  { key: 'managementPlan',    label: 'Management Plan',       color: 'border-emerald-400' },
+  { key: 'presentingProblem', label: 'Presenting Problem',   accent: 'border-indigo-500'  },
+  { key: 'history',           label: 'Clinical History',     accent: 'border-violet-500'  },
+  { key: 'examFindings',      label: 'Examination Findings', accent: 'border-cyan-500'    },
+  { key: 'diagnosisName',     label: 'Diagnosis',            accent: 'border-amber-500'   },
+  { key: 'managementPlan',    label: 'Management Plan',      accent: 'border-emerald-500' },
 ] as const
 
 export default function ViewEncounter() {
   const { compositionId } = useParams<{ compositionId: string }>()
   const { state } = useLocation()
   const navState = (state as LocationState) ?? {}
+  const navigate = useNavigate()
 
   const [encounter, setEncounter] = useState<EncounterDetail | null>(null)
   const [demo, setDemo] = useState<PatientDemographics | undefined>(
@@ -25,13 +27,13 @@ export default function ViewEncounter() {
   )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [editLoading, setEditLoading] = useState(false)
 
   useEffect(() => {
     if (!compositionId) return
     EHRbaseService.getEncounter(decodeURIComponent(compositionId))
       .then(async enc => {
         setEncounter(enc)
-        // Resolve patient demographics if not already known from nav state
         if (enc && !demo) {
           const ehrId = navState.ehrId ?? enc.ehrId
           if (ehrId) {
@@ -44,6 +46,38 @@ export default function ViewEncounter() {
       .finally(() => setLoading(false))
   }, [compositionId])
 
+  async function handleEdit() {
+    if (!compositionId) return
+    const ehrId = navState.ehrId ?? encounter?.ehrId
+    if (!ehrId) return
+    setEditLoading(true)
+    try {
+      const result = await EHRbaseService.getEncounterWithETag(decodeURIComponent(compositionId))
+      if (!result) return
+      const patientId = navState.patientId ?? demo?.id
+      navigate(`/patient/${ehrId}/new-encounter`, {
+        state: {
+          patientId,
+          ehrId,
+          mode: 'edit',
+          compositionId: decodeURIComponent(compositionId),
+          etag: result.etag,
+          visitDate: result.detail.visitDate,
+          prefill: {
+            presentingProblem: result.detail.presentingProblem,
+            history:           result.detail.history,
+            examFindings:      result.detail.examFindings,
+            diagnosisName:     result.detail.diagnosisName,
+            diagnosisCode:     result.detail.diagnosisCode,
+            managementPlan:    result.detail.managementPlan,
+          },
+        },
+      })
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
   const ehrId = navState.ehrId ?? encounter?.ehrId
   const breadcrumbs = [
     { label: 'Worklist', to: '/' },
@@ -53,39 +87,45 @@ export default function ViewEncounter() {
 
   return (
     <Layout breadcrumbs={breadcrumbs}>
-      {loading && <div className="py-20 text-center text-gray-400 text-sm">Loading encounter…</div>}
-      {error   && <div className="py-20 text-center text-red-500 text-sm">Error: {error}</div>}
+      {loading && <div className="py-24 text-center text-slate-600 text-sm">Loading encounter…</div>}
+      {error   && <div className="py-24 text-center text-rose-500 text-sm">Error: {error}</div>}
 
       {encounter && (
-        <div className="space-y-4">
-          {/* Encounter header */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center justify-between">
+        <div className="space-y-3">
+          {/* Encounter header card */}
+          <div className="bg-[#0f0f1a] rounded-xl border border-white/[0.07] p-5 flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-bold text-gray-900">{formatDate(encounter.visitDate)}</h1>
+              <h1 className="text-lg font-semibold text-slate-100">{formatDate(encounter.visitDate)}</h1>
               {demo && (
-                <p className="text-sm text-gray-500 mt-0.5">
+                <p className="text-sm text-slate-500 mt-0.5">
                   {demo.name} · {demo.id} · {demo.gender}
                 </p>
               )}
             </div>
-            {encounter.diagnosisCode && encounter.diagnosisCode !== 'unspecified' && (
-              <span className="text-xs bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1 rounded-full font-mono font-medium">
-                {encounter.diagnosisCode}
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              {encounter.diagnosisCode && encounter.diagnosisCode !== 'unspecified' && (
+                <span className="text-xs bg-amber-500/[0.12] border border-amber-500/25 text-amber-300
+                  px-3 py-1 rounded-full font-mono font-medium">
+                  ICD-11: {encounter.diagnosisCode}
+                </span>
+              )}
+              <Button variant="secondary" size="sm" loading={editLoading} onClick={handleEdit}>
+                Edit
+              </Button>
+            </div>
           </div>
 
           {/* Clinical sections */}
           {SECTIONS.map(section => {
             const value = encounter[section.key as keyof EncounterDetail]
             return (
-              <div key={section.key} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <div className={`border-l-4 ${section.color} pl-4`}>
-                  <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+              <div key={section.key} className="bg-[#0f0f1a] rounded-xl border border-white/[0.07] p-5">
+                <div className={`border-l-2 ${section.accent} pl-4`}>
+                  <h2 className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">
                     {section.label}
                   </h2>
-                  <p className="text-gray-800 text-sm leading-relaxed">
-                    {value || <span className="text-gray-300 italic">Not recorded</span>}
+                  <p className="text-slate-200 text-sm leading-relaxed">
+                    {value || <span className="text-slate-700 italic text-xs">Not recorded</span>}
                   </p>
                 </div>
               </div>

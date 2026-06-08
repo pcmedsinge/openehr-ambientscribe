@@ -1,1 +1,46 @@
 @import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #07070f;
+  color: #f1f5f9;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Force readable text in all form controls — browser UA + color-scheme:dark can
+   produce invisible text when an explicit dark background is set on the element. */
+input, textarea, select {
+  color: #e2e8f0;
+  caret-color: #6366f1;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* ── AI field populate glow ──────────────────────────────────────────── */
+@keyframes fieldGlow {
+  0%   { background-color: rgba(99,102,241,0.18); box-shadow: inset 0 0 0 1.5px rgba(99,102,241,0.55), 0 0 20px rgba(99,102,241,0.12); }
+  65%  { background-color: rgba(99,102,241,0.06); box-shadow: inset 0 0 0 1px rgba(99,102,241,0.2); }
+  100% { background-color: transparent; box-shadow: none; }
+}
+.field-glow { animation: fieldGlow 1.8s ease-out forwards; }
+
+/* ── AI panel pulse during extraction ───────────────────────────────── */
+@keyframes aiPulse {
+  0%, 100% { border-color: rgba(99,102,241,0.28); box-shadow: 0 0 24px rgba(99,102,241,0.06); }
+  50%       { border-color: rgba(168,85,247,0.55); box-shadow: 0 0 36px rgba(99,102,241,0.18), 0 0 70px rgba(168,85,247,0.08); }
+}
+.ai-extracting { animation: aiPulse 1.6s ease-in-out infinite; }
+
+/* ── Overdue dot pulse ───────────────────────────────────────────────── */
+@keyframes overduePin {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+.overdue-dot { animation: overduePin 2s ease-in-out infinite; }

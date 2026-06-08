@@ -10,6 +10,13 @@ export default defineConfig({
       '/ehrbase': {
         target: 'http://localhost:8086',
         changeOrigin: true,
+        configure: (proxy) => {
+          // EHRbase rejects PUT/DELETE if Origin header is present (CORS config only allows POST).
+          // Safe to strip since this is a local dev proxy to a same-machine service.
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.removeHeader('origin')
+          })
+        },
       },
     },
   },

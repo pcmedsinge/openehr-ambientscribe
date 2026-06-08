@@ -173,6 +173,81 @@ export const EHRbaseService = {
     return rows[0]?.[0] ?? ''
   },
 
+  // Returns full encounter detail AND the ETag header (needed for updates).
+  async getEncounterWithETag(compositionId: string): Promise<{ detail: EncounterDetail; etag: string } | null> {
+    const res = await fetch(`${ECIS}/composition/${compositionId}?format=FLAT`, {
+      headers: headers(),
+    })
+    if (!res.ok) {
+      console.error('getEncounterWithETag failed:', res.status, await res.text())
+      return null
+    }
+    const etag = res.headers.get('ETag') ?? compositionId
+    const data = await res.json() as { composition?: Record<string, string>; ehrId?: string }
+    const flat = data.composition ?? (data as unknown as Record<string, string>)
+    return {
+      detail: {
+        compositionId,
+        ehrId:             data.ehrId ?? '',
+        visitDate:         flat[FLAT_READ.startTime]   ?? '',
+        presentingProblem: flat[FLAT_READ.presenting]  ?? '',
+        history:           flat[FLAT_READ.story]       ?? '',
+        examFindings:      flat[FLAT_READ.exam]        ?? '',
+        diagnosisName:     flat[FLAT_READ.diagName]    ?? '',
+        diagnosisCode:     flat[FLAT_READ.diagCode]    ?? '',
+        managementPlan:    flat[FLAT_READ.synopsis]    ?? '',
+      },
+      etag,
+    }
+  },
+
+  // Updates an existing encounter composition. Requires the ETag from a prior GET.
+  async updateEncounter(
+    compositionId: string,
+    etag: string,
+    fields: {
+      visitDate: string
+      presentingProblem: string
+      history: string
+      examFindings: string
+      diagnosisName: string
+      diagnosisCode: string
+      managementPlan: string
+      composerName?: string
+    }
+  ): Promise<string> {
+    const raw: Record<string, string> = {
+      ...FLAT_DEFAULTS,
+      [FLAT.startTime]:  fields.visitDate,
+      [FLAT.storyTime]:  fields.visitDate,
+      [FLAT.examTime]:   fields.visitDate,
+      [FLAT.composer]:   fields.composerName ?? 'AmbientScribe',
+      [FLAT.presenting]: fields.presentingProblem,
+      [FLAT.story]:      fields.history,
+      [FLAT.exam]:       fields.examFindings,
+      [FLAT.diagName]:   fields.diagnosisName,
+      [FLAT.diagCode]:   fields.diagnosisCode.trim() || 'unspecified',
+      [FLAT.diagTerm]:   fields.diagnosisCode.trim() ? 'ICD-11' : 'local',
+      [FLAT.synopsis]:   fields.managementPlan,
+    }
+    const flat = Object.fromEntries(
+      Object.entries(raw).filter(([, v]) => v.trim() !== '')
+    )
+    const res = await fetch(
+      `${ECIS}/composition/${compositionId}?format=FLAT&templateId=${TEMPLATE_ID}`,
+      {
+        method: 'PUT',
+        headers: headers(),
+        body: JSON.stringify(flat),
+      }
+    )
+    if (!res.ok) throw new Error(`Update encounter failed: ${await res.text()}`)
+    // ECIS PUT returns { meta: { href: { url: ".../composition/{baseUid}" } } }
+    const data = await res.json() as { meta?: { href?: { url?: string } } }
+    const href = data.meta?.href?.url ?? ''
+    return href.split('/').pop() ?? compositionId
+  },
+
   // Creates a new encounter composition.
   async createEncounter(
     ehrId: string,

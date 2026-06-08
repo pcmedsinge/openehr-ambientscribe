@@ -33,6 +33,7 @@ services:
       SECURITY_AUTHUSER: ehrbase-user
       SECURITY_AUTHPASSWORD: SuperSecretPassword1
       SERVER_NODENAME: local.ambientscribe.org
+      SYSTEM_ALLOWTEMPLATEOVERWRITE: "true"
     depends_on:
       db:
         condition: service_healthy

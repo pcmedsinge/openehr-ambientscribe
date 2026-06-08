@@ -66,7 +66,36 @@ if (-not $hasTemplate) {
     Write-Ok "Template already loaded"
 }
 
-# ── 4. Start dev server in a new terminal ───────────────────────────────────
+# ── 4. Frontend dependencies ────────────────────────────────────────────────
+Write-Step "Checking frontend dependencies..."
+$nodeModules = Join-Path $PSScriptRoot "frontend\node_modules"
+if (-not (Test-Path $nodeModules)) {
+    Write-Warn "node_modules missing — running npm install..."
+    Push-Location "$PSScriptRoot\frontend"
+    npm install 2>&1 | Out-Null
+    Pop-Location
+    Write-Ok "Dependencies installed"
+} else {
+    Write-Ok "Frontend dependencies present"
+}
+
+# ── 5. OpenAI API key ────────────────────────────────────────────────────────
+Write-Step "Checking OpenAI API key..."
+$envFile = Join-Path $PSScriptRoot "frontend\.env.local"
+if (-not (Test-Path $envFile)) {
+    Write-Warn "frontend\.env.local not found — AI extraction will not work"
+    Write-Warn "Create frontend\.env.local and add: VITE_OPENAI_API_KEY=sk-..."
+} else {
+    $envContent = Get-Content $envFile -Raw
+    if ($envContent -match 'VITE_OPENAI_API_KEY=sk-\.\.\.') {
+        Write-Warn "VITE_OPENAI_API_KEY is still a placeholder — AI extraction will not work"
+        Write-Warn "Edit frontend\.env.local and replace sk-... with your real key"
+    } else {
+        Write-Ok "OpenAI API key found"
+    }
+}
+
+# ── 6. Start dev server in a new terminal ───────────────────────────────────
 Write-Step "Starting dev server..."
 $frontendPath = Join-Path $PSScriptRoot "frontend"
 Start-Process powershell -ArgumentList "-NoExit", "-Command",
